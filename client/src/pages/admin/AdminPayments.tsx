@@ -43,7 +43,7 @@ export default function AdminPayments() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
-              {payments.map(p => {
+              {(payments || []).map((p: any) => {
                 const SIcon = statusIcons[p.status] || Clock;
                 return (
                   <tr key={p.id} className="hover:bg-gray-800/30">

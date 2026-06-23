@@ -46,7 +46,7 @@ export default function AdminDashboard() {
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
         <h3 className="font-black text-sm mb-4 flex items-center gap-2"><Gift className="w-4 h-4 text-gold"/> 鏈上分佈</h3>
         <div className="flex flex-wrap gap-2">
-          {data.chainsBreakdown.map(c => (
+          {(data.chainsBreakdown || []).map((c: any) => (
             <span key={c.chain} className="bg-gray-800 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-300">
               {c.chain} <span className="text-gold ml-1">{c.count}</span>
             </span>
@@ -70,13 +70,13 @@ function StatCard({ icon: Icon, label, value, sub, color }: { icon: any; label: 
 }
 
 function ChartCard({ icon: Icon, title, color, items, valueKey, prefix }: { icon: any; title: string; color: string; items: any[]; valueKey: string; prefix: string }) {
-  const maxVal = Math.max(...items.map(x => x[valueKey]), 1);
+  const maxVal = Math.max(...(items || []).map((x: any) => x[valueKey]), 1);
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
       <h3 className="font-black text-sm mb-4 flex items-center gap-2"><Icon className={`w-4 h-4 text-${color === 'emerald' ? 'emerald' : 'blue'}-400`}/>{title}</h3>
       <div className="space-y-2">
         {items.length === 0 && <p className="text-xs text-gray-500">尚無數據</p>}
-        {items.map(m => (
+        {(items || []).map((m: any) => (
           <div key={m.month} className="flex items-center gap-3">
             <span className="text-xs text-gray-400 w-16">{m.month}</span>
             <div className="flex-1 bg-gray-800 rounded-full h-5 overflow-hidden">

@@ -3,3 +3,8 @@ dist/
 *.db
 .env
 data/
+*.d.ts
+*.d.ts.map
+*.js
+*.js.map
+*.tsbuildinfo

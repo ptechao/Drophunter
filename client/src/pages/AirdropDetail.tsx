@@ -9,7 +9,7 @@ export default function AirdropDetail() {
   const { t } = useTranslation();
   const { user } = useAuth();
 
-  const { data: airdrop, isLoading } = trpc.airdrops.getOne.useQuery(
+  const { data: airdrop, isLoading } = (trpc as any).airdrops.getOne.useQuery(
     { id: Number(id) },
     { enabled: !!id }
   );

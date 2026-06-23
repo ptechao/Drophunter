@@ -15,7 +15,7 @@ export default function Airdrops() {
   const [chain, setChain] = useState('全部');
   const [status, setStatus] = useState('全部');
 
-  const { data: airdrops, isLoading } = trpc.airdrops.list.useQuery({
+  const { data: airdrops, isLoading } = (trpc as any).airdrops.list.useQuery({
     chain: chain !== '全部' ? chain : undefined,
     status: status !== '全部' ? status : undefined,
     search: search || undefined,
@@ -66,7 +66,7 @@ export default function Airdrops() {
       )}
 
       <div className="grid gap-4">
-        {airdrops?.map(a => (
+        {airdrops?.map((a: any) => (
           <Link key={a.id} to={`/airdrops/${a.id}`}>
             <div className="bg-card border border-border rounded-xl p-5 hover:border-gold/30 transition-all cursor-pointer group">
               <div className="flex items-start justify-between">

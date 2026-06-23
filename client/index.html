@@ -7,7 +7,18 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body class="bg-background text-foreground">
-    <div id="root"></div>
+    <div id="root"><p style="color:#f0b90b;padding:2rem;font-family:sans-serif">Loading...</p></div>
+    <script>
+      window.onerror = function(msg, url, line, col, error) {
+        var stack = error && error.stack ? error.stack.replace(/\n/g,'<br/>') : 'no stack';
+        document.getElementById('root').innerHTML = '<div style="color:#ef4444;padding:2rem;font-family:monospace;font-size:13px;line-height:1.6;background:#0a0a0f;min-height:100vh"><b style="color:#f0b90b">JS Error:</b><br/><br/>' + msg + '<br/><br/><span style="color:#9ca3af">' + url + ':' + line + '</span><br/><br/><b>Stack:</b><br/><pre style="color:#6b7280;font-size:11px;white-space:pre-wrap;word-break:break-all">' + stack + '</pre></div>';
+      };
+      window.addEventListener('unhandledrejection', function(e) {
+        var msg = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+        var stack = e.reason && e.reason.stack ? e.reason.stack.replace(/\n/g,'<br/>') : 'no stack';
+        document.getElementById('root').innerHTML = '<div style="color:#ef4444;padding:2rem;font-family:monospace;font-size:13px;line-height:1.6;background:#0a0a0f;min-height:100vh"><b style="color:#f0b90b">Promise Error:</b><br/><br/>' + msg + '<br/><br/><b>Stack:</b><br/><pre style="color:#6b7280;font-size:11px;white-space:pre-wrap;word-break:break-all">' + stack + '</pre></div>';
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

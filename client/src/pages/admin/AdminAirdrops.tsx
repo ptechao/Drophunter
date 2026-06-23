@@ -56,7 +56,7 @@ export default function AdminAirdrops() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
-              {airdrops.map(a => (
+              {(airdrops || []).map((a: any) => (
                 <tr key={a.id} className={`hover:bg-gray-800/30 ${a.disabled ? 'opacity-40' : ''}`}>
                   <td className="px-4 py-3 text-gray-500">{a.id}</td>
                   <td className="px-4 py-3 font-bold">{a.name}</td>

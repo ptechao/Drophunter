@@ -7,6 +7,7 @@ import { db, schema } from './db';
 import { eq, desc, like, or, sql, and } from 'drizzle-orm';
 import { startScheduler } from './services/scheduler';
 import { generateAirdropSummary } from './services/aiSummary';
+import { verifyTransaction, getNativeBalance, verifyAirdropTasks, rpcHealthCheck } from './services/chainRpc';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -561,12 +562,60 @@ const adminRouter = router({
   }),
 });
 
+// ═══════════════════════════════════════════════════════════
+// ─── CHAIN ROUTER — On-chain verification ───
+// ═══════════════════════════════════════════════════════════
+
+const chainRouter = router({
+  /** Health check for RPC connectivity */
+  health: publicProcedure.query(async () => {
+    return await rpcHealthCheck();
+  }),
+
+  /** Verify a transaction on-chain */
+  verifyTx: publicProcedure
+    .input(z.object({
+      txHash: z.string(),
+      chainId: z.number().default(137),
+    }))
+    .query(async ({ input }) => {
+      return await verifyTransaction(input.txHash, input.chainId);
+    }),
+
+  /** Get native token balance for an address */
+  balance: publicProcedure
+    .input(z.object({
+      address: z.string(),
+      chainId: z.number().default(137),
+    }))
+    .query(async ({ input }) => {
+      return await getNativeBalance(input.address, input.chainId);
+    }),
+
+  /** Verify airdrop tasks for a wallet address */
+  verifyTasks: publicProcedure
+    .input(z.object({
+      address: z.string(),
+      tasks: z.array(z.object({
+        id: z.number(),
+        instruction: z.string(),
+        type: z.enum(['link', 'tx', 'social']),
+        url: z.string().optional(),
+      })),
+      chainId: z.number().default(137),
+    }))
+    .mutation(async ({ input }) => {
+      return await verifyAirdropTasks(input.address, input.tasks as any, input.chainId);
+    }),
+});
+
 // ─── App router ───
 const appRouter = router({
   airdrops: airdropsRouter,
   users: usersRouter,
   stats: statsRouter,
   admin: adminRouter,
+  chain: chainRouter,
   health: publicProcedure.query(() => ({ status: 'ok', timestamp: Date.now() })),
 });
 
@@ -580,9 +629,9 @@ app.use('/api/trpc', createExpressMiddleware({
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static('dist/public'));
+  app.use(express.static('../dist/public'));
   app.get('*', (_, res) => {
-    res.sendFile('dist/public/index.html', { root: '.' });
+    res.sendFile('../dist/public/index.html', { root: '.' });
   });
 } else {
   app.get('/', (_, res) => {

@@ -6,11 +6,11 @@ export default {
     extend: {
       colors: {
         gold: '#f0b90b',
-        card: 'var(--card)',
-        border: 'var(--border)',
-        muted: 'var(--muted)',
-        foreground: 'var(--foreground)',
-        background: 'var(--background)',
+        card: 'rgb(var(--card) / <alpha-value>)',
+        border: 'rgb(var(--border) / <alpha-value>)',
+        muted: 'rgb(var(--muted) / <alpha-value>)',
+        foreground: 'rgb(var(--foreground) / <alpha-value>)',
+        background: 'rgb(var(--background) / <alpha-value>)',
       },
     },
   },

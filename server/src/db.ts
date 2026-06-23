@@ -1,6 +1,6 @@
 import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
-import * as schema from '../../drizzle/schema';
+import * as schema from './drizzle/schema';
 import path from 'path';
 import fs from 'fs';
 

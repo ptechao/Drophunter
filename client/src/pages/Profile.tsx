@@ -110,7 +110,7 @@ function PaymentList({ userId, t }: { userId: number; t: (k: string) => string }
 
   return (
     <div className="space-y-2">
-      {payments.map((p: any) => (
+      {(payments || []).map((p: any) => (
         <div key={p.id} className="flex items-center justify-between bg-background rounded-lg px-3 py-2 text-xs">
           <span className="font-bold">{p.amount} {p.currency}</span>
           <span className={`font-bold ${

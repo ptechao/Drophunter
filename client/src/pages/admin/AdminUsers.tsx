@@ -43,7 +43,7 @@ export default function AdminUsers() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
-              {users.map(u => (
+              {(users || []).map((u: any) => (
                 <tr key={u.id} className="hover:bg-gray-800/30">
                   <td className="px-4 py-3 text-gray-500">{u.id}</td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-400">{u.address ? `${u.address.slice(0,6)}...${u.address.slice(-4)}` : '-'}</td>
