@@ -1,18 +1,35 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, ExternalLink, Gift, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, ExternalLink, Gift, AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
+import { trpc } from '../lib/trpc';
 
 export default function AirdropDetail() {
   const { id } = useParams();
   const { t } = useTranslation();
 
-  const steps = [
-    '連接錢包至 LayerZero 官方網站',
-    '在 Stargate Finance 跨鏈至少 $100',
-    '質押 STG 代幣 30 天',
-    '加入官方 Discord 並驗證',
-    '完成 Galxe 任務系列',
-  ];
+  const { data: airdrop, isLoading } = trpc.airdrops.getOne.useQuery(
+    { id: Number(id) },
+    { enabled: !!id }
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-gold" />
+      </div>
+    );
+  }
+
+  if (!airdrop) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-foreground/40">Airdrop not found</p>
+        <Link to="/airdrops" className="text-gold hover:underline mt-2 inline-block">
+          {t('detail.back')}
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -26,15 +43,17 @@ export default function AirdropDetail() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Gift className="w-6 h-6 text-gold" />
-              <h1 className="text-2xl font-black">LayerZero</h1>
-              <span className="bg-green-500/10 text-green-400 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
-                {t('airdrops.active')}
+              <h1 className="text-2xl font-black">{airdrop.name}</h1>
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
+                airdrop.status === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'
+              }`}>
+                {t(airdrop.status === 'active' ? 'airdrops.active' : 'airdrops.upcoming')}
               </span>
             </div>
-            <p className="text-foreground/60">跨鏈互操作協議空投，預計 TGE 2024 Q4</p>
+            <p className="text-foreground/60">{airdrop.description}</p>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-black text-gold">$500-2000</div>
+            <div className="text-2xl font-black text-gold">{airdrop.rewardEstimate || 'TBD'}</div>
             <span className="text-[10px] text-foreground/40">{t('airdrops.estReward')}</span>
           </div>
         </div>
@@ -42,9 +61,9 @@ export default function AirdropDetail() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: t('airdrops.chain'), value: 'Ethereum' },
-            { label: t('airdrops.difficulty'), value: t('airdrops.easy') },
-            { label: t('airdrops.tasks'), value: '5' },
+            { label: t('airdrops.chain'), value: airdrop.chain },
+            { label: t('airdrops.difficulty'), value: t(`airdrops.${airdrop.difficulty === '簡單' ? 'easy' : airdrop.difficulty === '中等' ? 'medium' : 'hard'}`) },
+            { label: t('airdrops.tasks'), value: String(airdrop.taskCount) },
           ].map(s => (
             <div key={s.label} className="bg-muted rounded-lg p-3 text-center">
               <div className="text-[10px] text-foreground/40 uppercase font-black">{s.label}</div>
@@ -53,39 +72,43 @@ export default function AirdropDetail() {
           ))}
         </div>
 
-        {/* AI Analysis */}
-        <div className="bg-blue-500/5 border border-blue-500/10 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertCircle className="w-4 h-4 text-blue-400" />
-            <h3 className="text-sm font-black text-blue-400">{t('detail.aiAnalysis')}</h3>
+        {/* AI Guide */}
+        {airdrop.guide && (
+          <div className="bg-blue-500/5 border border-blue-500/10 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-4 h-4 text-blue-400" />
+              <h3 className="text-sm font-black text-blue-400">{t('detail.aiAnalysis')}</h3>
+            </div>
+            <p className="text-sm text-foreground/70">{airdrop.guide}</p>
           </div>
-          <p className="text-sm text-foreground/70">
-            LayerZero 已確認空投，總量 10% 分配給早期用戶。根據歷史類似項目 (Arbitrum, Optimism)，
-            預估單帳號收益 $500-2000。建議使用主網帳號操作以提高權重。
-          </p>
-        </div>
+        )}
 
         {/* Task Steps */}
-        <div className="space-y-3">
-          <h3 className="font-black text-lg">{t('detail.steps')}</h3>
-          {steps.map((step, i) => (
-            <div key={i} className="flex items-start gap-3 bg-muted rounded-lg p-4">
-              <div className="w-6 h-6 rounded-full bg-gold/20 text-gold flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
-                {i + 1}
+        {airdrop.tasks && airdrop.tasks.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="font-black text-lg">{t('detail.steps')}</h3>
+            {airdrop.tasks.map((task: any) => (
+              <div key={task.id} className="flex items-start gap-3 bg-muted rounded-lg p-4">
+                <div className="w-6 h-6 rounded-full bg-gold/20 text-gold flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
+                  {task.step}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm">{task.instruction}</p>
+                </div>
+                <CheckCircle className="w-5 h-5 text-foreground/20" />
               </div>
-              <div className="flex-1">
-                <p className="text-sm">{step}</p>
-              </div>
-              <CheckCircle className="w-5 h-5 text-foreground/20" />
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* CTA */}
         <div className="flex gap-3">
-          <button className="flex-1 bg-gold text-black py-3 rounded-xl font-black hover:bg-gold/80 transition-all flex items-center justify-center gap-2">
-            <ExternalLink className="w-4 h-4" /> {t('detail.goto')}
-          </button>
+          {airdrop.sourceUrl && (
+            <a href={airdrop.sourceUrl} target="_blank" rel="noopener noreferrer"
+              className="flex-1 bg-gold text-black py-3 rounded-xl font-black hover:bg-gold/80 transition-all flex items-center justify-center gap-2">
+              <ExternalLink className="w-4 h-4" /> {t('detail.goto')}
+            </a>
+          )}
           <button className="px-4 py-3 border border-border rounded-xl hover:bg-muted transition-all">
             {t('detail.share')}
           </button>
