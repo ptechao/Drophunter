@@ -1,10 +1,16 @@
 node_modules/
-dist/
+# `dist/` 是 Vite 前端 build 產物，納入 repo 方便 VPS pull 即用
 *.db
 .env
 data/
+
+# tsc build artifacts
 *.d.ts
 *.d.ts.map
 *.js
 *.js.map
 *.tsbuildinfo
+
+# But keep dist/public (Vite build output)
+!dist/public/
+!dist/public/**
