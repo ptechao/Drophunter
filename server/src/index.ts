@@ -67,7 +67,7 @@ const airdropsRouter = router({
       }
       return await db.select().from(schema.airdrops)
         .where(and(...conditions))
-        .orderBy(desc(schema.airdrops.createdAt))
+        .orderBy(desc(schema.airdrops.score))
         .limit(input?.limit || 50);
     }),
 

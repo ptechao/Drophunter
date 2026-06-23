@@ -90,12 +90,17 @@ export default function Airdrops() {
                     <span>{a.taskCount} {t('airdrops.tasks')}</span>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right space-y-1">
                   <div className="flex items-center gap-1 text-gold font-black">
                     <TrendingUp className="w-4 h-4" />
                     {a.rewardEstimate || 'TBD'}
                   </div>
-                  <span className="text-[10px] text-foreground/40">{t('airdrops.estReward')}</span>
+                  {a.score > 0 && (
+                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                      a.score >= 70 ? 'bg-green-500/10 text-green-400' : a.score >= 40 ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400'
+                    }`}>★ {a.score}</span>
+                  )}
+                  <div className="text-[10px] text-foreground/40">{t('airdrops.estReward')}</div>
                 </div>
               </div>
             </div>

@@ -31,10 +31,14 @@ export const airdrops = sqliteTable('airdrops', {
   sourceUrl: text('source_url'),
   imageUrl: text('image_url'),
   disabled: integer('disabled').default(0), // 0=active, 1=disabled by admin
+  score: integer('score').default(50), // AI 評分 0-100
+  endDate: text('end_date'), // 預計結束日期 (空=未定)
+  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => ({
   statusIdx: index('airdrops_status_idx').on(table.status),
   chainIdx: index('airdrops_chain_idx').on(table.chain),
+  scoreIdx: index('airdrops_score_idx').on(table.score),
 }));
 
 // Tasks for each airdrop

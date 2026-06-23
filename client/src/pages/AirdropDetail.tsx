@@ -15,6 +15,7 @@ export default function AirdropDetail() {
   );
 
   const isVip = user?.tier === 'vip';
+  const isLoggedIn = !!user;
 
   if (isLoading) {
     return (
@@ -84,8 +85,8 @@ export default function AirdropDetail() {
           ))}
         </div>
 
-        {/* AI Guide — FREE users see only first 2 lines, VIP see all */}
-        {airdrop.guide && (
+        {/* AI Guide — login required */}
+        {airdrop.guide && isLoggedIn && (
           <div className="bg-blue-500/5 border border-blue-500/10 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <AlertCircle className="w-4 h-4 text-blue-400" />
@@ -103,8 +104,8 @@ export default function AirdropDetail() {
           </div>
         )}
 
-        {/* Task Steps — FREE users see first 2, VIP see all */}
-        {airdrop.tasks && airdrop.tasks.length > 0 && (
+        {/* Task Steps — login required */}
+        {airdrop.tasks && airdrop.tasks.length > 0 && isLoggedIn && (
           <div className="space-y-3">
             <h3 className="font-black text-lg">{t('detail.steps')}</h3>
             {airdrop.tasks.map((task: any, idx: number) => {
@@ -129,6 +130,15 @@ export default function AirdropDetail() {
                 </Link>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Login prompt */}
+        {!isLoggedIn && (
+          <div className="bg-gold/5 border border-gold/10 rounded-xl p-6 text-center space-y-3">
+            <Lock className="w-8 h-8 text-gold mx-auto" />
+            <p className="font-black text-gold">連接錢包查看詳細攻略與任務步驟</p>
+            <p className="text-sm text-foreground/50">免費連接 MetaMask 即可解鎖 AI 分析與空投任務</p>
           </div>
         )}
 
