@@ -30,6 +30,7 @@ export const airdrops = sqliteTable('airdrops', {
   source: text('source'), // where it was discovered
   sourceUrl: text('source_url'),
   imageUrl: text('image_url'),
+  disabled: integer('disabled').default(0), // 0=active, 1=disabled by admin
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => ({
   statusIdx: index('airdrops_status_idx').on(table.status),

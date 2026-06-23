@@ -1,26 +1,29 @@
 import { Link } from 'react-router-dom';
-import { Target, Menu, Globe } from 'lucide-react';
+import { Target, Menu, Globe, Wallet, User, Crown } from 'lucide-react';
 import { useState } from 'react';
 import { useLanguageContext, Language } from '../contexts/LanguageContext';
 import { useTranslation } from '../hooks/useTranslation';
+import { useAuth } from '../contexts/AuthContext';
 
 const LANG_LABELS: Record<Language, string> = {
   'zh-TW': '繁',
   'zh-CN': '简',
   'en': 'EN',
 };
-
 const LANG_ORDER: Language[] = ['zh-TW', 'zh-CN', 'en'];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { language, setLanguage } = useLanguageContext();
   const { t } = useTranslation();
+  const { address, user, isConnecting, connect, disconnect } = useAuth();
 
   const cycleLang = () => {
     const idx = LANG_ORDER.indexOf(language);
     setLanguage(LANG_ORDER[(idx + 1) % LANG_ORDER.length]);
   };
+
+  const shortAddr = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '';
 
   return (
     <nav className="border-b border-border bg-card/80 backdrop-blur sticky top-0 z-50">
@@ -43,9 +46,37 @@ export default function Navbar() {
             <Globe className="w-4 h-4" />
             {LANG_LABELS[language]}
           </button>
-          <button className="bg-gold text-black px-4 py-1.5 rounded-lg text-sm font-black hover:bg-gold/80 transition-colors">
-            {t('nav.connect')}
-          </button>
+          {address ? (
+            <div className="flex items-center gap-2">
+              {user?.tier === 'vip' && (
+                <span className="flex items-center gap-1 text-[10px] font-black bg-gold/15 text-gold px-2 py-0.5 rounded-full">
+                  <Crown className="w-3 h-3" /> VIP
+                </span>
+              )}
+              <Link
+                to="/profile"
+                className="flex items-center gap-1.5 text-sm font-bold text-foreground/70 hover:text-gold transition-colors px-2 py-1 rounded"
+              >
+                <User className="w-4 h-4" />
+                {shortAddr}
+              </Link>
+              <button
+                onClick={disconnect}
+                className="text-xs font-bold text-foreground/40 hover:text-red-400 transition-colors"
+              >
+                {t('nav.disconnect')}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={connect}
+              disabled={isConnecting}
+              className="bg-gold text-black px-4 py-1.5 rounded-lg text-sm font-black hover:bg-gold/80 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <Wallet className="w-4 h-4" />
+              {isConnecting ? '...' : t('nav.connect')}
+            </button>
+          )}
         </div>
 
         {/* Mobile nav */}
@@ -63,9 +94,24 @@ export default function Navbar() {
           <Link to="/airdrops" className="block text-sm font-bold" onClick={() => setOpen(false)}>
             {t('nav.airdrops')}
           </Link>
-          <button className="w-full bg-gold text-black px-4 py-2 rounded-lg text-sm font-black">
-            {t('nav.connect')}
-          </button>
+          {address ? (
+            <>
+              <Link to="/profile" className="block text-sm font-bold" onClick={() => setOpen(false)}>
+                {shortAddr} {user?.tier === 'vip' ? '👑' : ''}
+              </Link>
+              <button onClick={() => { disconnect(); setOpen(false); }} className="text-sm font-bold text-red-400">
+                {t('nav.disconnect')}
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => { connect(); setOpen(false); }}
+              disabled={isConnecting}
+              className="w-full bg-gold text-black px-4 py-2 rounded-lg text-sm font-black"
+            >
+              {t('nav.connect')}
+            </button>
+          )}
         </div>
       )}
     </nav>

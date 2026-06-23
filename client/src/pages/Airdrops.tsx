@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, TrendingUp, Gift, Loader2 } from 'lucide-react';
+import { Search, TrendingUp, Gift, Loader2, Lock, Crown } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
+import { useAuth } from '../contexts/AuthContext';
 import { trpc } from '../lib/trpc';
 
 const CHAINS = ['全部', 'Ethereum', 'zkSync Era', 'StarkNet', 'Scroll', 'Linea', 'Base', 'Arbitrum', 'Polygon zkEVM'];
@@ -9,6 +10,7 @@ const DIFFICULTIES = ['全部', '簡單', '中等', '困難'];
 
 export default function Airdrops() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [chain, setChain] = useState('全部');
   const [status, setStatus] = useState('全部');
@@ -19,17 +21,22 @@ export default function Airdrops() {
     search: search || undefined,
   });
 
+  const isVip = user?.tier === 'vip';
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black">{t('airdrops.title')}</h1>
           <p className="text-sm text-foreground/60 mt-1">{t('airdrops.subtitle')}</p>
         </div>
+        {!isVip && (
+          <Link to="/subscribe" className="hidden sm:flex items-center gap-1.5 bg-gold/10 text-gold px-3 py-1.5 rounded-lg text-xs font-black hover:bg-gold/20">
+            <Crown className="w-3.5 h-3.5" /> {t('detail.upgrade')}
+          </Link>
+        )}
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40" />
@@ -40,32 +47,24 @@ export default function Airdrops() {
             className="w-full bg-card border border-border rounded-lg pl-10 pr-4 py-2 text-sm focus:border-gold outline-none"
           />
         </div>
-        <select
-          value={chain}
-          onChange={e => setChain(e.target.value)}
-          className="bg-card border border-border rounded-lg px-3 py-2 text-sm"
-        >
+        <select value={chain} onChange={e => setChain(e.target.value)}
+          className="bg-card border border-border rounded-lg px-3 py-2 text-sm">
           {CHAINS.map(c => <option key={c}>{c === '全部' ? t('airdrops.allChains') : c}</option>)}
         </select>
-        <select
-          value={status}
-          onChange={e => setStatus(e.target.value)}
-          className="bg-card border border-border rounded-lg px-3 py-2 text-sm"
-        >
+        <select value={status} onChange={e => setStatus(e.target.value)}
+          className="bg-card border border-border rounded-lg px-3 py-2 text-sm">
           <option value="全部">{t('airdrops.allDifficulty')}</option>
           <option value="active">{t('airdrops.active')}</option>
           <option value="upcoming">{t('airdrops.upcoming')}</option>
         </select>
       </div>
 
-      {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-gold" />
         </div>
       )}
 
-      {/* Airdrop Cards */}
       <div className="grid gap-4">
         {airdrops?.map(a => (
           <Link key={a.id} to={`/airdrops/${a.id}`}>
@@ -73,6 +72,10 @@ export default function Airdrops() {
               <div className="flex items-start justify-between">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
+                    {a.imageUrl && (
+                      <img src={a.imageUrl} alt={a.name} className="w-8 h-8 rounded-full bg-muted object-contain" 
+                           onError={e => (e.target as HTMLImageElement).style.display = 'none'} />
+                    )}
                     <Gift className="w-5 h-5 text-gold" />
                     <h3 className="font-black text-lg group-hover:text-gold transition-colors">{a.name}</h3>
                     <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
@@ -101,9 +104,7 @@ export default function Airdrops() {
       </div>
 
       {airdrops?.length === 0 && !isLoading && (
-        <div className="text-center py-12 text-foreground/40">
-          No airdrops found
-        </div>
+        <div className="text-center py-12 text-foreground/40">No airdrops found</div>
       )}
     </div>
   );
