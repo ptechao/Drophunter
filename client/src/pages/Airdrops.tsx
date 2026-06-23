@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, TrendingUp, Gift, Loader2, Lock, Crown } from 'lucide-react';
+import { Search, TrendingUp, Gift, Loader2, Lock, Crown, ArrowRight } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../contexts/AuthContext';
 import { trpc } from '../lib/trpc';
 
 const CHAINS = ['全部', 'Ethereum', 'zkSync Era', 'StarkNet', 'Scroll', 'Linea', 'Base', 'Arbitrum', 'Polygon zkEVM'];
-const DIFFICULTIES = ['全部', '簡單', '中等', '困難'];
+const FREE_LIMIT = 5;
 
 export default function Airdrops() {
   const { t } = useTranslation();
@@ -22,6 +22,9 @@ export default function Airdrops() {
   });
 
   const isVip = user?.tier === 'vip';
+  const isLoggedIn = !!user;
+  const visibleAirdrops = isVip ? airdrops : (airdrops || []).slice(0, FREE_LIMIT);
+  const lockedCount = !isVip && airdrops ? Math.max(0, airdrops.length - FREE_LIMIT) : 0;
 
   return (
     <div className="space-y-6">
@@ -66,7 +69,7 @@ export default function Airdrops() {
       )}
 
       <div className="grid gap-4">
-        {airdrops?.map((a: any) => (
+        {visibleAirdrops?.map((a: any) => (
           <Link key={a.id} to={`/airdrops/${a.id}`}>
             <div className="bg-card border border-border rounded-xl p-5 hover:border-gold/30 transition-all cursor-pointer group">
               <div className="flex items-start justify-between">
@@ -106,6 +109,36 @@ export default function Airdrops() {
             </div>
           </Link>
         ))}
+        {lockedCount > 0 && (
+          <>
+            {Array.from({ length: Math.min(lockedCount, 3) }).map((_, i) => (
+              <div key={`locked-${i}`} className="bg-card/30 border border-border/20 rounded-xl p-5 opacity-30 blur-[2px] select-none pointer-events-none">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-muted" />
+                      <div className="w-32 h-5 bg-muted rounded" />
+                      <div className="w-12 h-4 bg-muted rounded-full" />
+                    </div>
+                    <div className="flex gap-4"><div className="w-20 h-3 bg-muted rounded" /><div className="w-16 h-3 bg-muted rounded" /><div className="w-12 h-3 bg-muted rounded" /></div>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <div className="w-20 h-5 bg-muted rounded" />
+                    <div className="w-8 h-3 bg-muted rounded" />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <Link to="/subscribe" className="bg-gold/10 border border-gold/20 rounded-xl p-6 text-center space-y-3 hover:bg-gold/15 transition-all">
+              <Crown className="w-8 h-8 text-gold mx-auto" />
+              <p className="font-black text-gold">解鎖全部 {airdrops.length} 個空投攻略</p>
+              <p className="text-sm text-foreground/50">VIP $9.99/月 — 隱藏 {lockedCount} 個高回報空投 + AI 分析</p>
+              <span className="inline-flex items-center gap-1.5 bg-gold text-black px-5 py-2 rounded-lg text-sm font-black">
+                立即升級 <ArrowRight className="w-4 h-4" />
+              </span>
+            </Link>
+          </>
+        )}
       </div>
 
       {airdrops?.length === 0 && !isLoading && (
