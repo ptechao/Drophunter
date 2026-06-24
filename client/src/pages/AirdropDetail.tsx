@@ -1,8 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, ExternalLink, Gift, AlertCircle, Loader2, Lock, Crown } from 'lucide-react';
+import { ArrowLeft, CheckCircle, ExternalLink, Gift, AlertCircle, Loader2, Lock, Crown, MessageSquare } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../contexts/AuthContext';
 import { trpc } from '../lib/trpc';
+import HeartButton from '../components/HeartButton';
+import BookmarkButton from '../components/BookmarkButton';
+import CommentSection from '../components/CommentSection';
+import NotesEditor from '../components/NotesEditor';
 
 export default function AirdropDetail() {
   const { id } = useParams();
@@ -85,6 +89,12 @@ export default function AirdropDetail() {
           ))}
         </div>
 
+        {/* ❤️ Social Actions */}
+        <div className="flex items-center gap-2">
+          <HeartButton airdropId={airdrop.id} initialLikes={airdrop.likesCount || 0} />
+          <BookmarkButton airdropId={airdrop.id} />
+        </div>
+
         {/* AI Guide — login required */}
         {airdrop.guide && isLoggedIn && (
           <div className="bg-blue-500/5 border border-blue-500/10 rounded-xl p-4">
@@ -143,6 +153,14 @@ export default function AirdropDetail() {
         )}
 
         {/* CTA */}
+        <div className="flex gap-3 pt-4 border-t border-border">
+          <div className="flex-1 space-y-4">
+            <NotesEditor airdropId={airdrop.id} />
+            <CommentSection airdropId={airdrop.id} />
+          </div>
+        </div>
+
+        {/* Action buttons */}
         <div className="flex gap-3">
           {airdrop.sourceUrl && (
             <a href={airdrop.sourceUrl} target="_blank" rel="noopener noreferrer"

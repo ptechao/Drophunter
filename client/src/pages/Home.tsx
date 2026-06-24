@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Gift, TrendingUp, Users } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
+import SearchBar from '../components/SearchBar';
 
 export default function Home() {
   const { t } = useTranslation();
@@ -16,12 +17,15 @@ export default function Home() {
         <p className="text-lg text-foreground/60 max-w-xl mx-auto">
           {t('home.subtitle')}
         </p>
-        <Link
-          to="/airdrops"
-          className="inline-flex items-center gap-2 bg-gold text-black px-8 py-3 rounded-xl font-black text-lg hover:bg-gold/80 transition-all"
-        >
-          {t('home.cta')} <ArrowRight className="w-5 h-5" />
-        </Link>
+        <div className="flex flex-col items-center gap-4">
+          <SearchBar />
+          <Link
+            to="/airdrops"
+            className="inline-flex items-center gap-2 bg-gold text-black px-8 py-3 rounded-xl font-black text-lg hover:bg-gold/80 transition-all"
+          >
+            {t('home.cta')} <ArrowRight className="w-5 h-5" />
+          </Link>
+        </div>
       </section>
 
       {/* Features */}

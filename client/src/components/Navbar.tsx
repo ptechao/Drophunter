@@ -5,6 +5,7 @@ import { useLanguageContext, Language } from '../contexts/LanguageContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../contexts/AuthContext';
 import WalletConnectModal from './WalletConnectModal';
+import SearchBar from './SearchBar';
 
 const LANG_LABELS: Record<Language, string> = {
   'zh-TW': '繁',
@@ -70,6 +71,7 @@ export default function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden sm:flex items-center gap-4">
+          <SearchBar />
           <Link to="/airdrops" className="text-sm font-bold text-foreground/70 hover:text-gold transition-colors">
             {t('nav.airdrops')}
           </Link>

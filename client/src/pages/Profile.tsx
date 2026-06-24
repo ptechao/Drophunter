@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Crown, Copy, Check, CreditCard, Users, ArrowRight } from 'lucide-react';
+import { Crown, Copy, Check, CreditCard, Users, Bookmark, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -79,6 +79,15 @@ export default function Profile() {
         </p>
       </div>
 
+      {/* Bookmarks */}
+      <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Bookmark className="w-5 h-5 text-gold" />
+          <h2 className="font-black">我的收藏</h2>
+        </div>
+        <BookmarkList userId={user.id} />
+      </div>
+
       {/* Payment History */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-4">
         <div className="flex items-center gap-2">
@@ -87,6 +96,36 @@ export default function Profile() {
         </div>
         <PaymentList userId={user.id} t={t} />
       </div>
+    </div>
+  );
+}
+
+function BookmarkList({ userId }: { userId: number }) {
+  const [bookmarks, setBookmarks] = useState<any[] | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useState(() => {
+    fetch(`/api/trpc/social.myBookmarks?input=${encodeURIComponent(JSON.stringify({ userId }))}`)
+      .then(r => r.json()).then(j => {
+        setBookmarks(j?.result?.data || []);
+        setLoading(false);
+      }).catch(() => setLoading(false));
+  });
+
+  if (loading) return <p className="text-xs text-foreground/40">...</p>;
+  if (!bookmarks?.length) return <p className="text-sm text-foreground/40">尚未收藏任何空投</p>;
+
+  return (
+    <div className="space-y-2">
+      {bookmarks.map((b: any) => (
+        <Link key={b.id} to={`/airdrops/${b.id}`} className="flex items-center gap-3 bg-background rounded-lg p-3 hover:bg-muted/50 transition-colors">
+          {b.imageUrl && <img src={b.imageUrl} alt="" className="w-8 h-8 rounded-lg bg-muted" />}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold truncate">{b.name}</p>
+            <p className="text-[10px] text-foreground/40">{b.protocol} · {b.chain} · {b.status === 'active' ? '🟢 進行中' : '🕐 即將開始'}</p>
+          </div>
+        </Link>
+      ))}
     </div>
   );
 }

@@ -609,6 +609,204 @@ const chainRouter = router({
     }),
 });
 
+// ═══════════════════════════════════════════════════════════
+// ─── SOCIAL ROUTER — likes, bookmarks ───
+// ═══════════════════════════════════════════════════════════
+
+const socialRouter = router({
+  // ❤️ Toggle like on an airdrop (returns new state + count)
+  toggleLike: publicProcedure
+    .input(z.object({ userId: z.number(), airdropId: z.number() }))
+    .mutation(async ({ input }) => {
+      const [existing] = await db.select().from(schema.likes)
+        .where(and(eq(schema.likes.userId, input.userId), eq(schema.likes.airdropId, input.airdropId)));
+      if (existing) {
+        await db.delete(schema.likes).where(eq(schema.likes.id, existing.id));
+        await db.update(schema.airdrops)
+          .set({ likesCount: sql`MAX(0, COALESCE(likes_count, 0) - 1)` })
+          .where(eq(schema.airdrops.id, input.airdropId));
+        return { liked: false };
+      } else {
+        await db.insert(schema.likes).values({ userId: input.userId, airdropId: input.airdropId });
+        await db.update(schema.airdrops)
+          .set({ likesCount: sql`COALESCE(likes_count, 0) + 1` })
+          .where(eq(schema.airdrops.id, input.airdropId));
+        return { liked: true };
+      }
+    }),
+
+  // Check if user liked an airdrop
+  isLiked: publicProcedure
+    .input(z.object({ userId: z.number(), airdropId: z.number() }))
+    .query(async ({ input }) => {
+      const [existing] = await db.select().from(schema.likes)
+        .where(and(eq(schema.likes.userId, input.userId), eq(schema.likes.airdropId, input.airdropId)));
+      return !!existing;
+    }),
+
+  // ⭐ Toggle bookmark
+  toggleBookmark: publicProcedure
+    .input(z.object({ userId: z.number(), airdropId: z.number() }))
+    .mutation(async ({ input }) => {
+      const [existing] = await db.select().from(schema.bookmarks)
+        .where(and(eq(schema.bookmarks.userId, input.userId), eq(schema.bookmarks.airdropId, input.airdropId)));
+      if (existing) {
+        await db.delete(schema.bookmarks).where(eq(schema.bookmarks.id, existing.id));
+        return { bookmarked: false };
+      } else {
+        await db.insert(schema.bookmarks).values({ userId: input.userId, airdropId: input.airdropId });
+        return { bookmarked: true };
+      }
+    }),
+
+  // Check if user bookmarked
+  isBookmarked: publicProcedure
+    .input(z.object({ userId: z.number(), airdropId: z.number() }))
+    .query(async ({ input }) => {
+      const [existing] = await db.select().from(schema.bookmarks)
+        .where(and(eq(schema.bookmarks.userId, input.userId), eq(schema.bookmarks.airdropId, input.airdropId)));
+      return !!existing;
+    }),
+
+  // Get user's bookmarked airdrops
+  myBookmarks: publicProcedure
+    .input(z.object({ userId: z.number(), limit: z.number().default(50) }))
+    .query(async ({ input }) => {
+      const rows = await db.select().from(schema.bookmarks)
+        .where(eq(schema.bookmarks.userId, input.userId))
+        .orderBy(desc(schema.bookmarks.createdAt))
+        .limit(input.limit);
+      const ids = rows.map(r => r.airdropId);
+      if (!ids.length) return [];
+      return await db.select().from(schema.airdrops)
+        .where(and(sql`id IN (${ids.join(',')})`, eq(schema.airdrops.disabled, 0)));
+    }),
+
+  // Get user's liked airdrops  
+  myLikes: publicProcedure
+    .input(z.object({ userId: z.number() }))
+    .query(async ({ input }) => {
+      const rows = await db.select().from(schema.likes)
+        .where(eq(schema.likes.userId, input.userId));
+      return rows;
+    }),
+});
+
+// ═══════════════════════════════════════════════════════════
+// ─── COMMENTS ROUTER — 討論串 ───
+// ═══════════════════════════════════════════════════════════
+
+const commentsRouter = router({
+  list: publicProcedure
+    .input(z.object({ airdropId: z.number(), limit: z.number().default(40) }))
+    .query(async ({ input }) => {
+      const rows = await db.select().from(schema.comments)
+        .where(eq(schema.comments.airdropId, input.airdropId))
+        .orderBy(schema.comments.createdAt)
+        .limit(input.limit);
+      // Fetch usernames
+      const userIds = [...new Set(rows.map(r => r.userId))];
+      const users = userIds.length > 0
+        ? await db.select({ id: schema.users.id, address: schema.users.address }).from(schema.users)
+            .where(sql`id IN (${userIds.join(',')})`)
+        : [];
+      const userMap = Object.fromEntries(users.map(u => [u.id, u]));
+      return rows.map(r => ({
+        ...r,
+        user: userMap[r.userId] ? { id: r.userId, address: userMap[r.userId].address?.slice(0,6)+'...'+userMap[r.userId].address?.slice(-4) } : null,
+      }));
+    }),
+
+  create: publicProcedure
+    .input(z.object({ userId: z.number(), airdropId: z.number(), content: z.string().min(1).max(1000), parentId: z.number().optional() }))
+    .mutation(async ({ input }) => {
+      const [comment] = await db.insert(schema.comments).values(input).returning();
+      await db.update(schema.airdrops)
+        .set({ commentsCount: sql`COALESCE(comments_count, 0) + 1` })
+        .where(eq(schema.airdrops.id, input.airdropId));
+      return comment;
+    }),
+
+  delete: publicProcedure
+    .input(z.object({ id: z.number(), userId: z.number() }))
+    .mutation(async ({ input }) => {
+      const [comment] = await db.select().from(schema.comments).where(eq(schema.comments.id, input.id));
+      if (!comment || comment.userId !== input.userId) throw new Error('Forbidden');
+      await db.delete(schema.comments).where(eq(schema.comments.id, input.id));
+      await db.update(schema.airdrops)
+        .set({ commentsCount: sql`MAX(0, COALESCE(comments_count, 0) - 1)` })
+        .where(eq(schema.airdrops.id, comment.airdropId));
+      return { ok: true };
+    }),
+});
+
+// ═══════════════════════════════════════════════════════════
+// ─── NOTES ROUTER — 個人備注 ───
+// ═══════════════════════════════════════════════════════════
+
+const notesRouter = router({
+  get: publicProcedure
+    .input(z.object({ userId: z.number(), airdropId: z.number() }))
+    .query(async ({ input }) => {
+      const [note] = await db.select().from(schema.notes)
+        .where(and(eq(schema.notes.userId, input.userId), eq(schema.notes.airdropId, input.airdropId)));
+      return note || null;
+    }),
+
+  upsert: publicProcedure
+    .input(z.object({ userId: z.number(), airdropId: z.number(), content: z.string().max(2000) }))
+    .mutation(async ({ input }) => {
+      const [existing] = await db.select().from(schema.notes)
+        .where(and(eq(schema.notes.userId, input.userId), eq(schema.notes.airdropId, input.airdropId)));
+      if (existing) {
+        const [updated] = await db.update(schema.notes)
+          .set({ content: input.content, updatedAt: sql`CURRENT_TIMESTAMP` })
+          .where(eq(schema.notes.id, existing.id)).returning();
+        return updated;
+      } else {
+        const [note] = await db.insert(schema.notes).values(input).returning();
+        return note;
+      }
+    }),
+
+  delete: publicProcedure
+    .input(z.object({ userId: z.number(), airdropId: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.delete(schema.notes)
+        .where(and(eq(schema.notes.userId, input.userId), eq(schema.notes.airdropId, input.airdropId)));
+      return { ok: true };
+    }),
+});
+
+// ═══════════════════════════════════════════════════════════
+// ─── SEARCH ROUTER — autocomplete ───
+// ═══════════════════════════════════════════════════════════
+
+const searchRouter = router({
+  autocomplete: publicProcedure
+    .input(z.object({ q: z.string().min(1).max(100), limit: z.number().default(8) }))
+    .query(async ({ input }) => {
+      return await db.select({
+        id: schema.airdrops.id,
+        name: schema.airdrops.name,
+        protocol: schema.airdrops.protocol,
+        chain: schema.airdrops.chain,
+        imageUrl: schema.airdrops.imageUrl,
+      }).from(schema.airdrops)
+        .where(and(
+          eq(schema.airdrops.disabled, 0),
+          or(
+            like(schema.airdrops.name, `%${input.q}%`),
+            like(schema.airdrops.protocol, `%${input.q}%`),
+            like(schema.airdrops.chain, `%${input.q}%`),
+            like(schema.airdrops.description, `%${input.q}%`),
+          )
+        ))
+        .orderBy(desc(schema.airdrops.score))
+        .limit(input.limit);
+    }),
+});
+
 // ─── App router ───
 const appRouter = router({
   airdrops: airdropsRouter,
@@ -616,6 +814,10 @@ const appRouter = router({
   stats: statsRouter,
   admin: adminRouter,
   chain: chainRouter,
+  social: socialRouter,
+  comments: commentsRouter,
+  notes: notesRouter,
+  search: searchRouter,
   health: publicProcedure.query(() => ({ status: 'ok', timestamp: Date.now() })),
 });
 

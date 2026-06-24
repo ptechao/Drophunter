@@ -23,16 +23,18 @@ export const airdrops = sqliteTable('airdrops', {
   chain: text('chain').notNull(),
   status: text('status').default('upcoming').notNull(), // 'upcoming' | 'active' | 'ended'
   description: text('description').notNull(),
-  guide: text('guide'), // AI-generated step-by-step guide
-  rewardEstimate: text('reward_estimate'), // e.g., "$500-2000"
+  guide: text('guide'),
+  rewardEstimate: text('reward_estimate'),
   difficulty: text('difficulty').default('中等'), // '簡單' | '中等' | '困難'
   taskCount: integer('task_count').default(0),
-  source: text('source'), // where it was discovered
+  source: text('source'),
   sourceUrl: text('source_url'),
   imageUrl: text('image_url'),
-  disabled: integer('disabled').default(0), // 0=active, 1=disabled by admin
-  score: integer('score').default(50), // AI 評分 0-100
-  endDate: text('end_date'), // 預計結束日期 (空=未定)
+  disabled: integer('disabled').default(0),
+  score: integer('score').default(50),
+  endDate: text('end_date'),
+  likesCount: integer('likes_count').default(0),       // 👍 讚數快取
+  commentsCount: integer('comments_count').default(0), // 💬 留言數快取
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => ({
@@ -52,13 +54,57 @@ export const tasks = sqliteTable('tasks', {
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
+// ❤️ Likes on airdrops
+export const likes = sqliteTable('likes', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  airdropId: integer('airdrop_id').references(() => airdrops.id).notNull(),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => ({
+  uniqueLike: index('likes_user_airdrop_unique').on(table.userId, table.airdropId),
+}));
+
+// ⭐ Bookmarks on airdrops
+export const bookmarks = sqliteTable('bookmarks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  airdropId: integer('airdrop_id').references(() => airdrops.id).notNull(),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => ({
+  uniqueBookmark: index('bookmarks_user_airdrop_unique').on(table.userId, table.airdropId),
+}));
+
+// 💬 Comments / 討論串 on airdrops
+export const comments = sqliteTable('comments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  airdropId: integer('airdrop_id').references(() => airdrops.id).notNull(),
+  parentId: integer('parent_id'), // null = top-level, set = reply
+  content: text('content').notNull(),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => ({
+  airdropIdx: index('comments_airdrop_idx').on(table.airdropId),
+}));
+
+// 📝 Personal notes on airdrops
+export const notes = sqliteTable('notes', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  airdropId: integer('airdrop_id').references(() => airdrops.id).notNull(),
+  content: text('content').notNull(),
+  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => ({
+  uniqueNote: index('notes_user_airdrop_unique').on(table.userId, table.airdropId),
+}));
+
 // Referrals
 export const referrals = sqliteTable('referrals', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   referrerId: integer('referrer_id').references(() => users.id).notNull(),
   refereeId: integer('referee_id').references(() => users.id).notNull(),
   earnings: real('earnings').default(0),
-  status: text('status').default('active').notNull(), // 'active' | 'cancelled'
+  status: text('status').default('active').notNull(),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
@@ -69,7 +115,7 @@ export const payments = sqliteTable('payments', {
   amount: real('amount').notNull(),
   currency: text('currency').default('USDC').notNull(),
   txHash: text('tx_hash'),
-  status: text('status').default('pending').notNull(), // 'pending' | 'confirmed' | 'failed'
+  status: text('status').default('pending').notNull(),
   tierStart: text('tier_start'),
   tierEnd: text('tier_end'),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
