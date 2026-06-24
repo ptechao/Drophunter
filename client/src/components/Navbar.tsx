@@ -1,6 +1,6 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Target, Menu, Globe, Wallet, User, Crown } from 'lucide-react';
-import { useState } from 'react';
 import { useLanguageContext, Language } from '../contexts/LanguageContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,7 +16,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { language, setLanguage } = useLanguageContext();
   const { t } = useTranslation();
-  const { address, user, isConnecting, connect, disconnect } = useAuth();
+  const { address, user, isConnecting, hasProvider, isMobile, connect, openMetaMaskApp, disconnect } = useAuth();
 
   const cycleLang = () => {
     const idx = LANG_ORDER.indexOf(language);
@@ -24,6 +24,11 @@ export default function Navbar() {
   };
 
   const shortAddr = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '';
+  const handleConnect = () => {
+    if (isMobile && !hasProvider) openMetaMaskApp();
+    else connect();
+  };
+  const connectLabel = isMobile && !hasProvider ? '用 MetaMask App 登入' : (hasProvider ? t('nav.connect') : '安裝 MetaMask');
 
   return (
     <nav className="border-b border-border bg-card/80 backdrop-blur sticky top-0 z-50">
@@ -69,12 +74,12 @@ export default function Navbar() {
             </div>
           ) : (
             <button
-              onClick={connect}
+              onClick={handleConnect}
               disabled={isConnecting}
               className="bg-gold text-black px-4 py-1.5 rounded-lg text-sm font-black hover:bg-gold/80 transition-colors flex items-center gap-1.5 disabled:opacity-50"
             >
               <Wallet className="w-4 h-4" />
-              {isConnecting ? '...' : t('nav.connect')}
+              {isConnecting ? '...' : connectLabel}
             </button>
           )}
         </div>
@@ -105,11 +110,12 @@ export default function Navbar() {
             </>
           ) : (
             <button
-              onClick={() => { connect(); setOpen(false); }}
+              onClick={() => { handleConnect(); setOpen(false); }}
               disabled={isConnecting}
-              className="w-full bg-gold text-black px-4 py-2 rounded-lg text-sm font-black"
+              className="w-full bg-gold text-black px-4 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-1.5"
             >
-              {t('nav.connect')}
+              <Wallet className="w-4 h-4" />
+              {isConnecting ? '...' : connectLabel}
             </button>
           )}
         </div>
