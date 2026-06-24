@@ -4,6 +4,7 @@ import { Target, Menu, Globe, Wallet, User, Crown } from 'lucide-react';
 import { useLanguageContext, Language } from '../contexts/LanguageContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../contexts/AuthContext';
+import WalletConnectModal from './WalletConnectModal';
 
 const LANG_LABELS: Record<Language, string> = {
   'zh-TW': '繁',
@@ -14,9 +15,10 @@ const LANG_ORDER: Language[] = ['zh-TW', 'zh-CN', 'en'];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [wcModalOpen, setWcModalOpen] = useState(false);
   const { language, setLanguage } = useLanguageContext();
   const { t } = useTranslation();
-  const { address, user, isConnecting, hasProvider, isMobile, connect, openMetaMaskApp, disconnect } = useAuth();
+  const { address, user, isConnecting, hasProvider, isMobile, connect, openMetaMaskApp, disconnect, refreshUser } = useAuth();
 
   const cycleLang = () => {
     const idx = LANG_ORDER.indexOf(language);
@@ -24,14 +26,42 @@ export default function Navbar() {
   };
 
   const shortAddr = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '';
+
   const handleConnect = () => {
-    if (isMobile && !hasProvider) openMetaMaskApp();
-    else connect();
+    // Desktop + has provider → direct connect
+    if (!isMobile && hasProvider) { connect(); return; }
+    // Mobile + no provider → MetaMask deep link (primary for MetaMask users)
+    if (isMobile && !hasProvider) { openMetaMaskApp(); return; }
+    // Mobile + has provider (in MetaMask browser) → direct connect
+    if (isMobile && hasProvider) { connect(); return; }
+    // Desktop + no provider → WalletConnect modal
+    setWcModalOpen(true);
   };
-  const connectLabel = isMobile && !hasProvider ? '用 MetaMask App 登入' : (hasProvider ? t('nav.connect') : '安裝 MetaMask');
+  const connectLabel = isMobile && !hasProvider ? '用 MetaMask App 登入' : '連接錢包';
+
+  const handleWcConnect = async (addr: string) => {
+    localStorage.setItem('dh_address', addr);
+    try {
+      const ref = new URLSearchParams(window.location.search).get('ref');
+      const res = await fetch('/api/trpc/users.register', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ address: addr, referralCode: ref || undefined }),
+      });
+      const json = await res.json();
+      if (json?.result?.data) {
+        await refreshUser();
+        window.location.reload();
+      }
+    } catch (e) {
+      console.error('WC register failed:', e);
+    }
+  };
 
   return (
     <nav className="border-b border-border bg-card/80 backdrop-blur sticky top-0 z-50">
+      <WalletConnectModal isOpen={wcModalOpen} onClose={() => setWcModalOpen(false)} onConnect={handleWcConnect} />
+
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 font-black text-lg text-gold">
           <Target className="w-6 h-6" />
